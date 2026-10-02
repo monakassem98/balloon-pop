@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>BalloonPop: Learning Express</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--sky:#bfe9ff;--mint:#b8f2d8;--sun:#ffe27a;--pink:#ff9ec4;--ink:#35456b}
+*{box-sizing:border-box;font-family:Fredoka,'Trebuchet MS',sans-serif}
+body{margin:0;color:var(--ink);background:linear-gradient(#9edcff,#e6f7ff 70%,#c8f5d8);min-height:100dvh}
+.scr{display:none;min-height:100dvh;padding:16px}.scr.on{display:block}.scr.center.on{display:grid;place-items:center}
+.card{background:#fff;border-radius:28px;padding:22px;box-shadow:0 8px 0 #0001,0 14px 30px #4a90c033;max-width:720px;margin:auto;text-align:center}
+.card.l{text-align:left;max-width:920px}
+h1{font-size:clamp(1.8rem,7vw,2.8rem);margin:.2em 0}h2{margin:.3em 0}
+button{border:0;border-radius:999px;padding:11px 20px;font-size:1.05rem;font-weight:600;cursor:pointer;background:var(--sun);color:var(--ink);box-shadow:0 5px 0 #0002;margin:3px}
+button:active{transform:translateY(3px);box-shadow:0 2px 0 #0002}button:focus-visible,input:focus-visible{outline:3px solid var(--ink)}
+.pink{background:var(--pink)}.mint{background:var(--mint)}.sky{background:var(--sky)}.sel{outline:4px solid var(--ink)}
+input,textarea{border:3px solid var(--sky);border-radius:14px;padding:9px;font-size:1rem;width:100%;color:var(--ink)}
+input[type=radio]{width:24px;height:24px;flex:none}
+.row{display:flex;gap:6px;align-items:center;margin:6px 0;flex-wrap:wrap}.row>input[type=text],.row>input:not([type]){flex:1;min-width:120px}
+.tabs{display:flex;flex-wrap:wrap}.qi{display:flex;justify-content:space-between;gap:8px;align-items:center;background:#f2fbff;border-radius:14px;padding:8px 12px;margin:6px 0}
+table{width:100%;border-collapse:collapse;font-size:.9rem}td,th{padding:6px;border-bottom:2px solid var(--sky);text-align:left}
+.tw{overflow-x:auto}pre{background:#f2fbff;padding:10px;border-radius:12px;overflow:auto;font-size:.8rem;white-space:pre-wrap}
+.note{background:var(--sun);border-radius:14px;padding:8px 12px;margin:8px 0}
+#game{position:fixed;inset:0;padding:0;overflow:hidden;background:radial-gradient(ellipse 90px 30px at 18% 14%,#fff,#fff0),radial-gradient(ellipse 130px 36px at 72% 30%,#fff,#fff0),linear-gradient(#8fd6ff,#e2f6ff 75%)}
+#game.on{display:block}#arena{position:absolute;inset:0}
+#hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:10px 14px;font-size:clamp(1.1rem,4vw,1.5rem);font-weight:600;z-index:5}
+.balloon{position:absolute;left:0;top:0;width:var(--bw);height:calc(var(--bw)*1.2);border-radius:50% 50% 48% 48%/58% 58% 42% 42%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-weight:600;font-size:clamp(.8rem,2.8vw,1.15rem);color:#2b3a67;cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none;padding:6px;box-shadow:inset -8px -10px 18px #0001;word-break:break-word;z-index:2}
+.balloon::after{content:'';position:absolute;bottom:-26px;left:50%;width:2px;height:26px;background:#8a93ad}
+.balloon img{max-width:60%;max-height:45%;object-fit:contain}
+.wob{animation:wob .25s 3;filter:grayscale(.7)}.gone{opacity:0;transition:opacity .6s;pointer-events:none}.pop{animation:pop .25s forwards;pointer-events:none}
+@keyframes wob{25%{rotate:-14deg}75%{rotate:14deg}}@keyframes pop{to{scale:1.6;opacity:0}}
+#ground{position:absolute;left:0;right:0;bottom:0;height:64px;background:linear-gradient(#7bd88f,#5cc274);z-index:3}
+#rail{position:absolute;left:0;right:0;bottom:56px;height:7px;background:#8d6e63;z-index:3}
+#train{position:absolute;left:0;bottom:50px;display:flex;align-items:flex-end;transition:transform 1.2s ease-in-out;z-index:4}
+#cart{position:relative;width:min(54vw,330px);min-height:84px;background:var(--sun);border:4px solid #e0a800;border-radius:16px 16px 8px 8px;padding:8px;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:600;font-size:clamp(.95rem,3.4vw,1.3rem);margin-right:2px;margin-bottom:12px}
+#cart i{position:absolute;bottom:-17px;width:26px;height:26px;border-radius:50%;background:#4a4e69;border:4px solid #9aa0b8}
+#cart.bump{animation:bump .4s}@keyframes bump{50%{transform:translateY(-8px)}}
+#eng{width:92px;flex:none}
+.fly{position:fixed;z-index:9;font-weight:600;font-size:1.2rem;pointer-events:none;background:#fff;border-radius:12px;padding:4px 10px}
+.cf{position:fixed;z-index:9;width:10px;height:10px;border-radius:2px;pointer-events:none}
+.stars{font-size:3rem}
+@media(prefers-reduced-motion:reduce){.wob,.pop,#cart.bump{animation:none}#train{transition:none}}
+</style></head><body>
+
+<section id="home" class="scr center on"><div class="card"><h1>🎈 BalloonPop 🚂<br>Learning Express</h1>
+<p>Students: open the personal link your teacher sent you.</p><button class="sky" onclick="openT()">👩‍🏫 Teacher Portal</button></div></section>
+
+<section id="denied" class="scr center"><div class="card"><h1>🚫 Access Denied</h1><p id="dmsg"></p></div></section>
+
+<section id="gate" class="scr center"><div class="card"><h1 id="hi"></h1><p id="meta"></p>
+<p><b>Pick your speed</b></p>
+<button class="mint" data-d="easy">🟢 Easy</button><button data-d="medium" class="sel">🟡 Medium</button><button class="pink" data-d="hard">🔴 Hard</button>
+<p><button style="font-size:1.5rem;padding:14px 36px" onclick="play()">🚂 Start!</button></p>
+<button class="sky" id="gback" style="display:none" onclick="show('teacher')">Back to portal</button></div></section>
+
+<section id="game" class="scr">
+<div id="hud"><span id="hearts"></span><span id="count"></span><span>⭐ <b id="score">0</b> <button class="sky" id="mute" onclick="toggleMute()" aria-label="Sound">🔊</button></span></div>
+<div id="arena"></div><div id="rail"></div><div id="ground"></div>
+<div id="train"><div id="cart"><span id="qtext"></span><i style="left:12%"></i><i style="right:12%"></i></div>
+<svg id="eng" viewBox="0 0 92 78"><rect x="4" y="14" width="34" height="42" rx="6" fill="#ff6b9a"/><rect x="12" y="22" width="16" height="14" rx="3" fill="#cdeefd"/><rect x="36" y="28" width="52" height="28" rx="8" fill="#ff8fab"/><rect x="62" y="12" width="14" height="18" rx="3" fill="#5d6d7e"/><circle cx="24" cy="60" r="12" fill="#4a4e69"/><circle cx="70" cy="60" r="12" fill="#4a4e69"/><circle cx="24" cy="60" r="4" fill="#ffe27a"/><circle cx="70" cy="60" r="4" fill="#ffe27a"/></svg></div>
+</section>
+
+<section id="end" class="scr center"><div class="card"><h1 id="etitle"></h1><div class="stars" id="estars"></div>
+<h2 id="escore"></h2><p id="etime"></p><div id="emiss"></div><div class="note" id="enote"></div>
+<button onclick="again()">🔁 Play again</button><button class="sky" id="eback" style="display:none" onclick="show('teacher')">Back to portal</button></div></section>
+
+<section id="teacher" class="scr"><div id="tp"></div></section>
+
+<script>
+const SIGNING_KEY='balloonpop-change-this-secret-before-sharing'; // used to sign student links
+const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
+const LS={g:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},s:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
+const okImg=u=>/^(https?:|data:image\/)/i.test(u||'');
+const Q=(t,c,...a)=>({t,c,a:a.map(x=>({x,i:''}))});
+let C=LS.g('bpx_cfg',null)||{pin:'1234',hook:'',qs:[Q('Which animal says "Meow"?',0,'🐱 Cat','🐶 Dog','🐮 Cow','🦆 Duck'),Q('2 + 3 = ?',1,'4','5','6','7'),Q('What colour is a banana?',2,'Red','Blue','Yellow','Green'),Q('Which one is a fruit?',3,'Chair','Car','Shoe','🍎 Apple'),Q('How many legs does a spider have?',2,'6','4','8','10')]};
+const save=()=>LS.s('bpx_cfg',C);
+const show=id=>document.querySelectorAll('.scr').forEach(e=>e.classList.toggle('on',e.id===id));
+const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+const b64=s=>btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const ub64=s=>decodeURIComponent(escape(atob(s.replace(/-/g,'+').replace(/_/g,'/'))));
+const fh=s=>{let a=0xdeadbeef,b=0x41c6ce57;for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);a=Math.imul(a^c,2654435761);b=Math.imul(b^c,1597334677)}a=Math.imul(a^a>>>16,2246822507)^Math.imul(b^b>>>13,3266489909);b=Math.imul(b^b>>>16,2246822507)^Math.imul(a^a>>>13,3266489909);return(4294967296*(2097151&b)+(a>>>0)).toString(16)};
+async function sign(m){if(crypto.subtle){try{const e=new TextEncoder(),k=await crypto.subtle.importKey('raw',e.encode(SIGNING_KEY),{name:'HMAC',hash:'SHA-256'},false,['sign']);return[...new Uint8Array(await crypto.subtle.sign('HMAC',k,e.encode(m)))].map(b=>b.toString(16).padStart(2,'0')).join('')}catch{}}return fh(SIGNING_KEY+m)+fh(m+SIGNING_KEY)}
+
+/* ---------- audio & effects ---------- */
+let AC,muted=false;
+function tone(f,d,t='sine',s=0,v=.15){if(muted)return;try{AC=AC||new(window.AudioContext||webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain(),n=AC.currentTime+s;o.type=t;o.frequency.value=f;g.gain.setValueAtTime(v,n);g.gain.exponentialRampToValueAtTime(.001,n+d);o.connect(g);g.connect(AC.destination);o.start(n);o.stop(n+d)}catch{}}
+const sfx={ok:()=>{tone(660,.15);tone(880,.15,'sine',.12);tone(1320,.3,'sine',.24)},bad:()=>tone(140,.35,'sawtooth',0,.07),win:()=>[523,659,784,1047].forEach((f,i)=>tone(f,.25,'triangle',i*.14))};
+function toggleMute(){muted=!muted;$('mute').textContent=muted?'🔇':'🔊'}
+function confetti(x,y){const cs=['#ff9ec4','#ffe27a','#9fd8ff','#b8f2d8','#c7a6ff'];for(let i=0;i<30;i++){const d=document.createElement('div');d.className='cf';d.style.cssText=`left:${x}px;top:${y}px;background:${cs[i%5]}`;document.body.append(d);const a=Math.random()*6.28,r=60+Math.random()*120;d.animate([{transform:'translate(0,0) rotate(0)',opacity:1},{transform:`translate(${Math.cos(a)*r}px,${Math.sin(a)*r+80}px) rotate(${Math.random()*720}deg)`,opacity:0}],{duration:900,easing:'ease-out'}).onfinish=()=>d.remove()}}
+
+/* ---------- student link & session ---------- */
+let S={},G={};
+const deny=m=>{$('dmsg').textContent=m;show('denied')};
+(async()=>{
+  const p=new URLSearchParams(location.search),st=p.get('student'),code=p.get('code');
+  flush();if(!st&&!code)return;
+  try{
+    const[pl,sig]=(code||'').split('.');
+    if(!st||!pl||sig!==await sign(st+'|'+pl))throw 0;
+    const d=JSON.parse(ub64(pl));if(d.n!==st||!Array.isArray(d.q)||!d.q.length)throw 0;
+    if(d.e&&Date.now()>d.e)return deny('This link has expired. Please ask your teacher for a new personal link.');
+    S={name:st,qs:d.q,hook:d.h||'',diff:'medium'};gate();
+  }catch{deny('This link looks broken or changed. Please ask your teacher for your personal link.')}
+})();
+function gate(){
+  S.attempt=LS.g('bpx_att_'+S.name,0)+1;$('hi').textContent=`Hi ${S.name}! 👋`;
+  $('meta').textContent=`${S.qs.length} questions – Attempt #${S.attempt}`;$('gback').style.display=$('eback').style.display=S.preview?'':'none';
+  show('gate');
+}
+document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{S.diff=b.dataset.d;document.querySelectorAll('[data-d]').forEach(x=>x.classList.toggle('sel',x===b))});
+function again(){gate()}
+
+/* ---------- gameplay ---------- */
+const SPD={easy:38,medium:72,hard:125},COL=['#ff9ec4','#9fd8ff','#b8f2d8','#ffe27a'];
+const hearts=()=>$('hearts').textContent='❤️'.repeat(G.lives)+'🤍'.repeat(3-G.lives);
+function play(){
+  AC=AC||new(window.AudioContext||webkitAudioContext)();AC.resume&&AC.resume();
+  G={i:0,lives:3,score:0,right:0,missed:[],t0:Date.now(),b:[],lock:false,wrong:false,last:performance.now()};
+  show('game');$('score').textContent=0;hearts();train(0);spawn();cancelAnimationFrame(G.raf);G.raf=requestAnimationFrame(loop);
+}
+function train(p){const t=$('train');t.style.transform=`translateX(${p*Math.max(0,innerWidth-t.offsetWidth)}px)`}
+function spawn(){
+  const q=S.qs[G.i],A=$('arena'),W=A.clientWidth,bw=Math.min(120,W/4-8);
+  G.b.forEach(b=>b.el.remove());G.b=[];G.lock=false;G.wrong=false;
+  $('qtext').textContent=q.t;$('count').textContent=`${G.i+1}/${S.qs.length}`;A.style.setProperty('--bw',bw+'px');
+  shuffle(q.a.map((_,k)=>k)).forEach((k,j)=>{
+    const a=q.a[k],el=document.createElement('div');el.className='balloon';
+    el.style.background=`radial-gradient(circle at 35% 30%,#fff9,#fff0 35%),${COL[k%4]}`;
+    if(okImg(a.i)){const im=document.createElement('img');im.src=a.i;im.alt='';el.append(im)}
+    if(a.x){const s=document.createElement('span');s.textContent=a.x;el.append(s)}
+    const b={el,k,x:(j+.5)*W/4-bw/2,y:-170-j*(60+Math.random()*60),ph:Math.random()*6,dead:false};
+    el.addEventListener('pointerdown',e=>{e.preventDefault();hit(b)});A.append(el);G.b.push(b);
+  });
+}
+function loop(t){
+  const dt=Math.min((t-G.last)/1000,.05);G.last=t;const H=$('arena').clientHeight,lim=H-170,sp=SPD[S.diff]*H/700;
+  G.b.forEach(b=>{if(b.dead)return;b.y+=sp*dt;if(b.y>lim)b.y=-170;b.el.style.transform=`translate(${b.x+Math.sin(t/700+b.ph)*10}px,${b.y}px)`});
+  G.raf=requestAnimationFrame(loop);
+}
+function hit(b){
+  if(G.lock||b.dead)return;const q=S.qs[G.i],a=q.a[b.k],lab=a.x||a.i,r=b.el.getBoundingClientRect();
+  b.dead=true;
+  if(b.k===q.c){
+    G.lock=true;sfx.ok();confetti(r.left+r.width/2,r.top+r.height/2);b.el.classList.add('pop');
+    G.score+=G.wrong?5:10;G.right++;$('score').textContent=G.score;
+    const c=$('cart').getBoundingClientRect(),f=document.createElement('div');f.className='fly';f.textContent=a.x||'⭐';
+    f.style.cssText=`left:${r.left+r.width/2}px;top:${r.top+r.height/2}px`;document.body.append(f);
+    f.animate([{transform:'translate(-50%,-50%) scale(1)'},{transform:`translate(calc(-50% + ${c.left+c.width/2-r.left-r.width/2}px),calc(-50% + ${c.top+c.height/2-r.top-r.height/2}px)) scale(.5)`,opacity:.9}],{duration:600,easing:'ease-in'}).onfinish=()=>{f.remove();$('cart').classList.add('bump');setTimeout(()=>$('cart').classList.remove('bump'),400)};
+    G.i++;train(G.i/S.qs.length);
+    setTimeout(()=>G.i>=S.qs.length?end():spawn(),1400);
+  }else{
+    sfx.bad();b.el.classList.add('wob');setTimeout(()=>b.el.classList.add('gone'),700);
+    G.lives--;G.wrong=true;hearts();
+    G.missed.push({question:q.t,chosen:lab,correct:q.a[q.c].x||q.a[q.c].i});
+    if(G.lives<=0){G.lock=true;setTimeout(end,900)}
+  }
+}
+function end(){
+  cancelAnimationFrame(G.raf);const n=S.qs.length,pct=G.right/n,stars=pct>=.9?3:pct>=.6?2:pct>=.3?1:0,now=new Date();
+  const r={student:S.name,attempt:S.attempt,score:G.score,stars,timeSec:Math.round((Date.now()-G.t0)/1000),difficulty:S.diff,missed:G.missed,date:now.toLocaleDateString('en-CA'),timestamp:now.toISOString()};
+  sfx.win();$('etitle').textContent=G.lives>0?'🎉 Great job!':'💪 Nice try!';
+  $('estars').textContent='⭐'.repeat(stars)+'☆'.repeat(3-stars);$('escore').textContent=`Score: ${G.score}`;$('etime').textContent=`${G.right}/${n} correct in ${r.timeSec}s`;
+  $('emiss').innerHTML=G.missed.length?'<p><b>Let\'s remember:</b></p>'+G.missed.map(m=>`<div>${esc(m.question)} → <b>${esc(m.correct)}</b></div>`).join(''):'<p>No mistakes! 🌟</p>';
+  show('end');
+  if(S.preview){$('enote').textContent='👀 Preview mode – nothing was saved or sent.';return}
+  LS.s('bpx_att_'+S.name,S.attempt);LS.s('bpx_res',[...LS.g('bpx_res',[]),r]);
+  if(!S.hook){$('enote').textContent='📝 No Google Sheet connected – this result is saved on this device only.';return}
+  $('enote').textContent='⏳ Sending to your teacher…';
+  post(S.hook,r).then(ok=>{$('enote').textContent=ok?'✅ Sent to your teacher!':'⚠️ Could not send right now. We saved it and will try again next time.';if(!ok)LS.s('bpx_q',[...LS.g('bpx_q',[]),{u:S.hook,r}])});
+}
+const post=(u,r)=>fetch(u,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(r)}).then(()=>true,()=>false);
+async function flush(){const q=LS.g('bpx_q',[]),rest=[];for(const x of q)if(!await post(x.u,x.r))rest.push(x);LS.s('bpx_q',rest)}
+
+/* ---------- teacher portal ---------- */
+let EI=-1,LK=[];
+function openT(){show('teacher');$('tp').innerHTML=`<div class="card"><h2>🔐 Teacher PIN</h2><input id="pin" type="password" inputmode="numeric" placeholder="Enter PIN" onkeydown="if(event.key=='Enter')login()"><p><button onclick="login()">Enter</button><button class="sky" onclick="show('home')">Back</button></p></div>`;$('pin').focus()}
+function login(){if($('pin').value===C.pin)panel();else{alert('Wrong PIN');$('pin').value=''}}
+function panel(){
+  $('tp').innerHTML=`<div class="card l"><h2>👩‍🏫 Teacher Portal</h2><div class="tabs">${['Questions','Sync','Links','Results'].map(t=>`<button class="mint" onclick="tab('${t}')">${t}</button>`).join('')}<button class="sky" onclick="location.href=location.pathname">Exit</button></div><div id="tb"></div></div>`;tab('Questions');
+}
+function tab(n){
+  const T={
+    Questions:()=>`<h3 id="qh">New question</h3><input id="qt" placeholder="Question or category prompt">
+    ${[0,1,2,3].map(k=>`<div class="row"><input type="radio" name="cr" value="${k}" ${k?'':'checked'} title="Correct answer"><input id="ax${k}" placeholder="Choice ${k+1}"><input id="ai${k}" placeholder="Image URL (optional)"><label class="sky" style="border-radius:99px;padding:8px 12px;cursor:pointer">📷<input type="file" accept="image/*" hidden onchange="up(this,${k})"></label></div>`).join('')}
+    <p style="font-size:.85rem">Select the circle next to the correct answer. Uploaded images are shrunk and embedded; web URLs keep student links shorter.</p>
+    <button onclick="saveQ()">💾 Save question</button><button class="pink" onclick="EI=-1;tab('Questions')">Clear</button><button class="sky" onclick="test()">▶ Test play</button><div id="ql"></div>`,
+    Sync:()=>`<h3>Live results → Google Sheet</h3><input id="hk" placeholder="Google Apps Script Web App URL" value="${esc(C.hook)}"><button onclick="C.hook=$('hk').value.trim();save();alert('Saved. Generate links again so they carry this URL.')">Save URL</button><button class="sky" onclick="testHook()">Send test row</button>
+    <div class="note"><b>Set up in 3 steps:</b><br>1. Create a Google Sheet → Extensions → Apps Script → paste the code below.<br>2. Deploy → New deployment → Web app → Execute as <i>Me</i>, access <i>Anyone</i>.<br>3. Copy the Web app URL, paste it above, then create your student links.</div>
+<pre>function doPost(e){
+  var d=JSON.parse(e.postData.contents);
+  SpreadsheetApp.getActiveSheet().appendRow([d.timestamp,d.date,d.student,d.attempt,d.score,d.stars,d.timeSec,d.difficulty,JSON.stringify(d.missed)]);
+  return ContentService.createTextOutput('ok');
+}</pre>
+    <h3>Teacher PIN</h3><div class="row"><input id="np" placeholder="New PIN"><button onclick="if($('np').value.length>=4){C.pin=$('np').value;save();alert('PIN changed')}else alert('Use at least 4 characters')">Change</button></div>`,
+    Links:()=>`<h3>Personal student links</h3>${location.protocol==='file:'?'<div class="note">⚠️ This file is opened from your computer. Upload it to a web host (GitHub Pages, Netlify…) and open it from there, otherwise links will not work on other devices.</div>':''}
+    <textarea id="nm" rows="4" placeholder="One student name per line"></textarea><div class="row"><label>Expires (optional): <input id="ex" type="date" style="width:auto"></label><button onclick="gen()">✨ Generate links</button></div><div id="lk"></div>`,
+    Results:()=>{const R=LS.g('bpx_res',[]);const pit={};R.forEach(r=>r.missed.forEach(m=>{pit[m.question]=(pit[m.question]||0)+1}));
+      return `<h3>Results</h3><div class="note">${C.hook?'Results from students\' own devices arrive in your Google Sheet. This table shows plays made on this device.':'No Sheet URL set – showing results saved on this device only.'}</div>
+      <button onclick="csv()">⬇ Export CSV</button><button class="pink" onclick="if(confirm('Clear all local results?')){LS.s('bpx_res',[]);tab('Results')}">Clear</button>
+      <div class="tw"><table><tr><th>Date</th><th>Student</th><th>#</th><th>Score</th><th>⭐</th><th>Time</th><th>Level</th><th>Missed</th></tr>${R.map(r=>`<tr><td>${esc(r.date)}</td><td>${esc(r.student)}</td><td>${r.attempt}</td><td>${r.score}</td><td>${r.stars}</td><td>${r.timeSec}s</td><td>${r.difficulty}</td><td>${r.missed.length}</td></tr>`).join('')||'<tr><td colspan="8">No plays yet.</td></tr>'}</table></div>
+      <h3>Common pitfalls</h3>${Object.entries(pit).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([q,n])=>`<div class="qi"><span>${esc(q)}</span><b>${n}×</b></div>`).join('')||'<p>Nothing yet.</p>'}`}
+  };
+  $('tb').innerHTML=T[n]();if(n==='Questions')qList();
+}
+function qList(){
+  $('ql').innerHTML='<h3>Your questions</h3>'+(C.qs.map((q,i)=>`<div class="qi"><span><b>${i+1}.</b> ${esc(q.t)} <small>✓ ${esc(q.a[q.c].x||'image')}</small></span><span><button class="sky" onclick="edQ(${i})">✏️</button><button class="pink" onclick="dlQ(${i})">🗑️</button></span></div>`).join('')||'<p>Add your first question above.</p>');
+}
+function edQ(i){const q=C.qs[i];EI=i;$('qh').textContent='Editing question '+(i+1);$('qt').value=q.t;q.a.forEach((a,k)=>{$('ax'+k).value=a.x||'';$('ai'+k).value=a.i||''});document.getElementsByName('cr')[q.c].checked=true;scrollTo(0,0)}
+function dlQ(i){if(confirm('Delete this question?')){C.qs.splice(i,1);save();EI=-1;qList()}}
+function saveQ(){
+  const t=$('qt').value.trim(),a=[0,1,2,3].map(k=>({x:$('ax'+k).value.trim(),i:$('ai'+k).value.trim()})),c=+document.querySelector('[name=cr]:checked').value;
+  if(!t)return alert('Type a question.');if(a.some(o=>!o.x&&!o.i))return alert('Every choice needs text or an image.');
+  if(a.some(o=>o.i&&!okImg(o.i)))return alert('Image URLs must start with http:// or https://');
+  const q={t,a,c};EI>=0?C.qs[EI]=q:C.qs.push(q);save();EI=-1;tab('Questions');
+}
+function up(inp,k){
+  const f=inp.files[0];if(!f)return;const im=new Image();im.onload=()=>{const s=96/Math.max(im.width,im.height),cv=document.createElement('canvas');cv.width=im.width*s;cv.height=im.height*s;cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);$('ai'+k).value=cv.toDataURL('image/jpeg',.6)};im.src=URL.createObjectURL(f);
+}
+function test(){if(!C.qs.length)return alert('Add a question first.');S={name:'Preview',qs:C.qs,hook:'',diff:'medium',preview:true};gate()}
+async function gen(){
+  const names=$('nm').value.split('\n').map(s=>s.trim()).filter(Boolean),ex=$('ex').value?new Date($('ex').value+'T23:59:59').getTime():0;
+  if(!C.qs.length)return alert('Add questions first.');
+  const base=location.protocol==='file:'?location.href.split('?')[0]:location.origin+location.pathname;LK=[];let h='';
+  for(const n of names){const pl=b64(JSON.stringify({n,e:ex,h:C.hook,q:C.qs})),u=`${base}?student=${encodeURIComponent(n)}&code=${pl}.${await sign(n+'|'+pl)}`;LK.push(u);
+    h+=`<div class="row"><b style="min-width:90px">${esc(n)}</b><input readonly value="${esc(u)}" onfocus="this.select()"><button onclick="cp(${LK.length-1},this)">Copy</button></div>`}
+  $('lk').innerHTML=h||'<p>Type at least one name.</p>';
+}
+function cp(i,b){const d=()=>{b.textContent='Copied ✓'};navigator.clipboard?navigator.clipboard.writeText(LK[i]).then(d,()=>b.previousElementSibling.select()):b.previousElementSibling.select()}
+function testHook(){if(!C.hook)return alert('Save a URL first.');const d=new Date();post(C.hook,{student:'TEST',attempt:0,score:0,stars:0,timeSec:0,difficulty:'easy',missed:[],date:d.toLocaleDateString('en-CA'),timestamp:d.toISOString()}).then(ok=>alert(ok?'Test row sent – check your Sheet.':'Could not reach the URL.'))}
+function csv(){
+  const R=LS.g('bpx_res',[]),q=v=>'"'+String(v).replace(/"/g,'""')+'"',rows=[['Date','Timestamp','Student','Attempt','Score','Stars','TimeSec','Difficulty','Missed']].concat(R.map(r=>[r.date,r.timestamp,r.student,r.attempt,r.score,r.stars,r.timeSec,r.difficulty,r.missed.map(m=>`${m.question}: chose ${m.chosen} (correct ${m.correct})`).join(' | ')]));
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+rows.map(r=>r.map(q).join(',')).join('\n')],{type:'text/csv'}));a.download='balloonpop-results.csv';a.click();
+}
+</script></body></html>
